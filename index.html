@@ -1,56 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <劇meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UrduSpeech:A 156-Hour Urdu Speech Corpus with 12-Dimension Paralinguistic Annotations</title>
+    <title>UrduSpeech: Multimodal Corpus Demo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .audio-card { border-left: 5px solid #007bff; margin-bottom: 15px; }
-        .accent-badge { font-size: 0.8rem; background-color: #e9ecef; padding: 2px 8px; border-radius: 10px; }
-        .category-header { background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 20px; }
+        :root { --primary-color: #2c3e50; --accent-color: #3498db; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hero { background: var(--primary-color); color: white; padding: 40px 0; margin-bottom: 30px; text-align: center; }
+        .category-tab { cursor: pointer; padding: 10px 20px; border-radius: 5px; background: white; border: 1px solid #ddd; margin-bottom: 10px; transition: 0.3s; }
+        .category-tab:hover, .category-tab.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+        .data-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px; overflow: hidden; border-left: 5px solid var(--accent-color); }
+        .urdu-text { font-size: 1.3rem; direction: rtl; text-align: right; color: #2c3e50; line-height: 1.8; padding: 15px; background: #fcfcfc; border-radius: 8px; border: 1px solid #eee; }
+        .label-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 15px; }
+        .label-item { font-size: 0.85rem; padding: 8px; background: #f1f3f5; border-radius: 4px; }
+        .label-title { font-weight: bold; color: #666; display: block; text-transform: uppercase; font-size: 0.7rem; }
+        audio { width: 100%; height: 40px; }
+        .badge-duration { float: right; background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
-<div class="container py-5">
-    <header class="text-center mb-5">
-        <h1>UrduSpeech Demo</h1>
-        <p class="lead">UrduSpeech:A 156-Hour Urdu Speech Corpus with 12-Dimension Paralinguistic Annotations</p>
-    </header>
+<div class="hero">
+    <h1>UrduSpeech Dataset Demo</h1>
+    <p>Anonymous Submission for Interspeech 2026</p>
+</div>
 
-    <ul class="nav nav-pills justify-content-center mb-4" id="subsetTabs" role="tablist">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#cs">US-CS (Code-switched)</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#std">US-Std (Standard Pakistani Urdu)</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#engpk">US-EngPk (Pakistani accented English)</button></li>
-    </ul>
-
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="cs">
-            <h3 class="mb-4">Code-Switched Samples (Urdu-English)</h3>
+<div class="container">
+    <div class="row">
+        <div class="col-md-3">
+            <h5>Categories (US-CS Long)</h5>
+            <div id="category-list">
+                <div class="category-tab active" onclick="loadCategory('Comedy-show')">Comedy-show</div>
+                <div class="category-tab" onclick="loadCategory('News')">News</div>
+                <div class="category-tab" onclick="loadCategory('Drama')">Drama</div>
+                </div>
         </div>
 
-        <div class="tab-pane fade" id="std">
-            <h3>Standard Pakistani Urdu Samples</h3>
-            <div class="category-header">
-                <h4>Prose <small class="text-muted">(Short Story / Essay)</small></h4>
+        <div class="col-md-9">
+            <h3 id="current-category">Comedy-show</h3>
+            <hr>
+            <div id="cards-container">
+                <div class="text-center">Loading samples...</div>
             </div>
-            <div class="row" id="cs-prose-samples">
-                <p class="text-muted ps-3">Samples loading...</p>
-            </div>
-            <div class="category-header">
-                <h4>Drama <small class="text-muted">(Regional Accents: Punjabi, Sindhi, Pashto, etc.)</small></h4>
-            </div>
-            <div class="row" id="cs-drama-samples">
-                </div>
-            </div>
-
-        <div class="tab-pane fade" id="engpk">
-            <h3>Pakistani Accented English Samples</h3>
-            </div>
+        </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    async function loadCategory(categoryName) {
+        // Update UI
+        document.getElementById('current-category').innerText = categoryName;
+        const container = document.getElementById('cards-container');
+        container.innerHTML = '<div class="text-center">Loading samples...</div>';
+        
+        // Update active tab
+        document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        const metadataPath = `US-CS/Long/${categoryName}/metadata.jsonl`;
+
+        try {
+            const response = await fetch(metadataPath);
+            const text = await response.text();
+            const lines = text.trim().split('\n');
+            
+            container.innerHTML = ''; // Clear loader
+
+            lines.forEach(line => {
+                const data = JSON.parse(line);
+                const para = data.model_paralinguistic;
+                const audioPath = `US-CS/Long/${categoryName}/${data.Audio_Clip}`;
+
+                const cardHtml = `
+                    <div class="data-card p-3">
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <span class="badge-duration">Duration: ${data.Duration_seconds}s</span>
+                                <audio controls src="${audioPath}"></audio>
+                            </div>
+                            <div class="col-12">
+                                <div class="urdu-text">${data.Transcription}</div>
+                            </div>
+                        </div>
+                        <div class="label-grid">
+                            <div class="label-item"><span class="label-title">Gender</span>${para.gender}</div>
+                            <div class="label-item"><span class="label-title">Age</span>${para.age}</div>
+                            <div class="label-item"><span class="label-title">Emotion</span>${para.emotion}</div>
+                            <div class="label-item"><span class="label-title">Tone</span>${para.tone}</div>
+                            <div class="label-item"><span class="label-title">Pitch</span>${para.pitch}</div>
+                            <div class="label-item"><span class="label-title">Speed</span>${para.speed}</div>
+                            <div class="label-item"><span class="label-title">Accent</span>${para.accent}</div>
+                            <div class="label-item"><span class="label-title">Rhythm</span>${para.rhythm}</div>
+                            <div class="label-item"><span class="label-title">Texture</span>${para.texture}</div>
+                            <div class="label-item"><span class="label-title">Pronunciation</span>${para.pronunciation}</div>
+                            <div class="label-item"><span class="label-title">Confidence</span>${data.Confidence_score}</div>
+                            <div class="label-item"><span class="label-title">Context</span>${para.contextual}</div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        } catch (e) {
+            container.innerHTML = `<div class="alert alert-danger">Error loading metadata for ${categoryName}. Ensure metadata.jsonl exists in the folder.</div>`;
+        }
+    }
+
+    // Initial load
+    window.onload = () => loadCategory('Comedy-show');
+</script>
+
 </body>
 </html>
