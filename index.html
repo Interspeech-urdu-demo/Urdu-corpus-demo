@@ -6,109 +6,170 @@
     <title>UrduSpeech: Multimodal Corpus Demo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        :root { --primary-color: #2c3e50; --accent-color: #3498db; }
-        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .hero { background: var(--primary-color); color: white; padding: 40px 0; margin-bottom: 30px; text-align: center; }
-        .category-tab { cursor: pointer; padding: 10px 20px; border-radius: 5px; background: white; border: 1px solid #ddd; margin-bottom: 10px; transition: 0.3s; }
-        .category-tab:hover, .category-tab.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
-        .data-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px; overflow: hidden; border-left: 5px solid var(--accent-color); }
-        .urdu-text { font-size: 1.3rem; direction: rtl; text-align: right; color: #2c3e50; line-height: 1.8; padding: 15px; background: #fcfcfc; border-radius: 8px; border: 1px solid #eee; }
-        .label-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 15px; }
-        .label-item { font-size: 0.85rem; padding: 8px; background: #f1f3f5; border-radius: 4px; }
-        .label-title { font-weight: bold; color: #666; display: block; text-transform: uppercase; font-size: 0.7rem; }
-        audio { width: 100%; height: 40px; }
-        .badge-duration { float: right; background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f4f7f6; }
+        body { background-color: var(--bg); font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #333; }
+        .navbar { background: var(--primary); color: white; padding: 20px 0; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .nav-breadcrumb { background: white; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+        .btn-nav { margin: 5px; border-radius: 20px; padding: 8px 20px; transition: 0.3s; }
+        .data-card { background: white; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); margin-bottom: 25px; border: none; overflow: hidden; }
+        .card-header-info { background: #f8f9fa; border-bottom: 1px solid #eee; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .urdu-text { font-size: 1.4rem; direction: rtl; text-align: right; color: #1a1a1a; line-height: 1.9; padding: 20px; background: #fff; border-bottom: 1px solid #eee; font-family: 'Noto Nastaliq Urdu', 'Arial', sans-serif; }
+        .label-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; padding: 20px; background: #fafafa; }
+        .label-box { background: white; border: 1px solid #eaeaea; padding: 10px; border-radius: 8px; }
+        .label-title { display: block; font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .label-value { font-size: 0.9rem; color: #444; line-height: 1.3; }
+        audio { width: 100%; border-radius: 8px; }
+        .loading { display: none; text-align: center; padding: 50px; }
     </style>
 </head>
 <body>
 
-<div class="hero">
-    <h1>UrduSpeech Dataset Demo</h1>
-    <p>Anonymous Submission for Interspeech 2026</p>
-</div>
+<nav class="navbar text-center">
+    <div class="container">
+        <h2 class="mb-0">UrduSpeech: 156 hours Urdu Corpus Demo</h2>
+        <small>Anonymous submission</small>
+    </div>
+</nav>
 
 <div class="container">
-    <div class="row">
-        <div class="col-md-3">
-            <h5>Categories (US-CS Long)</h5>
-            <div id="category-list">
-                <div class="category-tab active" onclick="loadCategory('Comedy-show')">Comedy-show</div>
-                <div class="category-tab" onclick="loadCategory('News')">News</div>
-                <div class="category-tab" onclick="loadCategory('Drama')">Drama</div>
-                </div>
-        </div>
-
-        <div class="col-md-9">
-            <h3 id="current-category">Comedy-show</h3>
-            <hr>
-            <div id="cards-container">
-                <div class="text-center">Loading samples...</div>
-            </div>
-        </div>
+    <div id="nav-level-1" class="text-center mb-3">
+        <span class="me-2 fw-bold">Datasets:</span>
     </div>
+    
+    <div id="nav-level-2" class="text-center mb-3">
+        <span class="me-2 fw-bold">length</span>
+    </div>
+
+    <div id="nav-level-3" class="text-center mb-4">
+        <span class="me-2 fw-bold">Category:</span>
+    </div>
+
+    <div id="nav-level-4" class="text-center mb-4 d-none">
+        <span class="me-2 fw-bold">Sub-Category:</span>
+    </div>
+
+    <div class="nav-breadcrumb">
+        Current Path: <span id="path-display" class="text-muted">Loading...</span>
+    </div>
+
+    <div id="loading" class="loading">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Fetching metadata samples...</p>
+    </div>
+
+    <div id="cards-container"></div>
 </div>
 
 <script>
-    async function loadCategory(categoryName) {
-        // Update UI
-        document.getElementById('current-category').innerText = categoryName;
-        const container = document.getElementById('cards-container');
-        container.innerHTML = '<div class="text-center">Loading samples...</div>';
-        
-        // Update active tab
-        document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
-        event.currentTarget.classList.add('active');
+    // --- CONFIGURATION: Update folder names here to match GitHub exactly ---
+    const CONFIG = {
+        datasets: ["US-Std", "US-EngPk", "US-CS"],
+        lengths: ["Long", "Short"],
+        categories: ["Film", "Drama", "News", "Interview", "Podcast", "Food", "Comedy-show", "Poetry", "Proses","Roadside-interview","Vlogs","Youtube-reviews"],
+        subCategories: {
+            "Poetry": ["Bait-bazi(Verse-Competition)", "Ghazal(Couplets)", "Mushaira(Poetry Symposium)","Nazm(thematic Poetry)"],
+            "Prose": ["essay", "short-story"]
+        }
+    };
 
-        const metadataPath = `US-CS/Long/${categoryName}/metadata.jsonl`;
+    let selection = { dataset: "US-Std", length: "Long", category: "Film", subCategory: "" };
+
+    function initNav() {
+        const createBtns = (id, list, key) => {
+            const div = document.getElementById(id);
+            list.forEach(val => {
+                const btn = document.createElement("button");
+                btn.className = `btn btn-outline-primary btn-nav ${selection[key] === val ? 'active' : ''}`;
+                btn.innerText = val;
+                btn.onclick = () => {
+                    selection[key] = val;
+                    if (key === 'category') selection.subCategory = CONFIG.subCategories[val] ? CONFIG.subCategories[val][0] : "";
+                    updateUI();
+                };
+                div.appendChild(btn);
+            });
+        };
+
+        createBtns("nav-level-1", CONFIG.datasets, "dataset");
+        createBtns("nav-level-2", CONFIG.lengths, "length");
+        createBtns("nav-level-3", CONFIG.categories, "category");
+    }
+
+    function updateUI() {
+        // Update button active states
+        document.querySelectorAll('.btn-nav').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.btn-nav').forEach(btn => {
+            if(Object.values(selection).includes(btn.innerText)) btn.classList.add('active');
+        });
+
+        // Handle Level 4 Visibility
+        const nav4 = document.getElementById("nav-level-4");
+        nav4.innerHTML = '<span class="me-2 fw-bold">Sub-Category:</span>'; 
+        if (CONFIG.subCategories[selection.category]) {
+            nav4.classList.remove("d-none");
+            CONFIG.subCategories[selection.category].forEach(sub => {
+                const btn = document.createElement("button");
+                btn.className = `btn btn-outline-secondary btn-nav ${selection.subCategory === sub ? 'active' : ''}`;
+                btn.innerText = sub;
+                btn.onclick = () => { selection.subCategory = sub; updateUI(); };
+                nav4.appendChild(btn);
+            });
+        } else {
+            nav4.classList.add("d-none");
+        }
+
+        loadData();
+    }
+
+    async function loadData() {
+        const container = document.getElementById('cards-container');
+        const loader = document.getElementById('loading');
+        container.innerHTML = "";
+        loader.style.display = "block";
+
+        // Build Path
+        let path = `${selection.dataset}/${selection.length}/${selection.category}`;
+        if (selection.subCategory) path += `/${selection.subCategory}`;
+        
+        document.getElementById("path-display").innerText = path;
 
         try {
-            const response = await fetch(metadataPath);
+            const response = await fetch(`${path}/metadata.jsonl`);
+            if (!response.ok) throw new Error("File not found");
             const text = await response.text();
             const lines = text.trim().split('\n');
-            
-            container.innerHTML = ''; // Clear loader
 
             lines.forEach(line => {
-                const data = JSON.parse(line);
-                const para = data.model_paralinguistic;
-                const audioPath = `US-CS/Long/${categoryName}/${data.Audio_Clip}`;
-
-                const cardHtml = `
-                    <div class="data-card p-3">
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <span class="badge-duration">Duration: ${data.Duration_seconds}s</span>
-                                <audio controls src="${audioPath}"></audio>
-                            </div>
-                            <div class="col-12">
-                                <div class="urdu-text">${data.Transcription}</div>
-                            </div>
+                const item = JSON.parse(line);
+                const p = item.model_paralinguistic;
+                
+                const card = `
+                    <div class="data-card">
+                        <div class="card-header-info">
+                            <span class="badge bg-dark">${item.Audio_Clip}</span>
+                            <span class="text-muted small">Duration: ${item.Duration_seconds}s | Score: ${item.Confidence_score}</span>
                         </div>
+                        <div class="urdu-text">${item.Transcription}</div>
+                        <div class="p-3 bg-white"><audio controls src="${path}/${item.Audio_Clip}"></audio></div>
                         <div class="label-grid">
-                            <div class="label-item"><span class="label-title">Gender</span>${para.gender}</div>
-                            <div class="label-item"><span class="label-title">Age</span>${para.age}</div>
-                            <div class="label-item"><span class="label-title">Emotion</span>${para.emotion}</div>
-                            <div class="label-item"><span class="label-title">Tone</span>${para.tone}</div>
-                            <div class="label-item"><span class="label-title">Pitch</span>${para.pitch}</div>
-                            <div class="label-item"><span class="label-title">Speed</span>${para.speed}</div>
-                            <div class="label-item"><span class="label-title">Accent</span>${para.accent}</div>
-                            <div class="label-item"><span class="label-title">Rhythm</span>${para.rhythm}</div>
-                            <div class="label-item"><span class="label-title">Texture</span>${para.texture}</div>
-                            <div class="label-item"><span class="label-title">Pronunciation</span>${para.pronunciation}</div>
-                            <div class="label-item"><span class="label-title">Confidence</span>${data.Confidence_score}</div>
-                            <div class="label-item"><span class="label-title">Context</span>${para.contextual}</div>
+                            ${Object.entries(p).map(([key, val]) => `
+                                <div class="label-box">
+                                    <span class="label-title">${key}</span>
+                                    <span class="label-value">${val}</span>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
                 `;
-                container.innerHTML += cardHtml;
+                container.innerHTML += card;
             });
-        } catch (e) {
-            container.innerHTML = `<div class="alert alert-danger">Error loading metadata for ${categoryName}. Ensure metadata.jsonl exists in the folder.</div>`;
+        } catch (err) {
+            container.innerHTML = `<div class="alert alert-warning">No data found for this selection. (Check: ${path}/metadata.jsonl)</div>`;
         }
+        loader.style.display = "none";
     }
 
-    // Initial load
-    window.onload = () => loadCategory('Comedy-show');
+    window.onload = () => { initNav(); updateUI(); };
 </script>
 
 </body>
